@@ -18,4 +18,6 @@ Article screen:
 
 - j - scroll down
 - k - scroll up
+- n - next article
+- b - previous article
 - q - back to main screen
