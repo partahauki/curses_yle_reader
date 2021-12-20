@@ -4,15 +4,15 @@ Terminal reader for YLE-news and crypto prices.
 ### Work in progress
 Dependencies:
 
-- pip install feedparser
+- pip install feedparser html2text
 
 Current keybindings (main screen):
 
 - n - next page of news
 - b - previous page
-- r - manual refresh (autorefresh set for every 30min)
+- u- manual refresh (autorefresh set for every 30min)
 - q - quit program
-- t - read full article (currently opens just the first article)
+- r - read full article (asks for index)
 
 Article screen:
 

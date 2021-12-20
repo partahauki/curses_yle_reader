@@ -4,10 +4,11 @@ import curses as cs
 import requests as req
 from modules import yle_module
 
-# todo: height checks for errors
+# todo:
+# height checks for errors
 # scroll limit bottom pad
-# links for pad?
-# opening pad for any news
+# switch pad with n/b
+# crypto to own module
 
 H_PAD = 1
 LOAD_CRYPTO = True
@@ -95,6 +96,9 @@ def main(stdscr):
     current_y = 0
     win = {}
 
+    toolbar = cs.newwin(1, max_x, max_y - 1, H_PAD)
+    win["toolbar"] = toolbar
+
     if LOAD_CRYPTO is True:
         crypto_y = len(CRYPTOS) + 1
         crypto_x = max_x - (H_PAD * 2)
@@ -103,21 +107,11 @@ def main(stdscr):
         win["crypto"] = crypto_win
 
     if LOAD_YLE is True:
-        yle_begin_y = current_y
         yle_y = max_y - current_y - 2
         yle_x = max_x - (H_PAD * 2)
-        yle = yle_module.yle_module(
-            yle_y,
-            yle_x,
-            yle_begin_y,
-            H_PAD,
-            max_y,
-            max_x
-        )
+        yle_win = cs.newwin(yle_y, yle_x, current_y, H_PAD)
+        yle = yle_module.yle_module(stdscr, yle_win, H_PAD, toolbar)
         win["yle"] = yle
-
-    toolbar = cs.newwin(1, max_x, max_y - 1, H_PAD)
-    win["toolbar"] = toolbar
 
     win["toolbar"].addstr(0, 0, "Initalizing...")
     win["toolbar"].refresh()
@@ -147,7 +141,7 @@ def main(stdscr):
             except Exception:
                 key = None
 
-            if key == 'r':
+            if key == 'u':
                 break
             elif key == 'n':
                 win["yle"].change_page(1)
@@ -160,7 +154,29 @@ def main(stdscr):
                 touch_and_refresh(win)
             elif key == 'q':
                 terminate_program()
+            elif key == 'r':
+                cs.echo()
+                cs.curs_set(True)
+                win["toolbar"].erase()
 
+                prompt = "Page to read: "
+                win["toolbar"].addstr(0, 0, prompt)
+                input_str = win["toolbar"].getstr(4)
+
+                win["toolbar"].clear()
+                win["toolbar"].refresh()
+                cs.noecho()
+                cs.curs_set(False)
+
+                pad_success = win["yle"].print_content_pad(input_str)
+                if pad_success is True:
+                    touch_and_refresh(win)
+                else:
+                    msg = "Invalid article index!"
+                    win["toolbar"].addstr(msg)
+                    win["toolbar"].refresh()
+
+        win["toolbar"].erase()
         win["toolbar"].addstr(0, 0, "Refreshing...")
         win["toolbar"].refresh()
 

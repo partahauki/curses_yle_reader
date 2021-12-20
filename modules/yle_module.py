@@ -12,22 +12,19 @@ h2t.ignore_images = True
 
 
 class yle_module:
-    def __init__(self, max_y, max_x, begin_y, h_pad, scr_max_y, scr_max_x):
-        self.max_x = max_x
-        self.max_y = max_y
-        self.begin_y = begin_y
+    def __init__(self, stdscr, win, h_pad, toolbar):
+        self.scr_max_y, self.scr_max_x = stdscr.getmaxyx()
         self.h_pad = h_pad
-        self.scr_max_y = scr_max_y
-        self.scr_max_x = scr_max_x
+        self.toolbar = toolbar
 
-        self.win = cs.newwin(max_y, max_x, begin_y, h_pad)
+        self.win = win
         self.pad = cs.newpad(1, 1)
         self.json_data = None
         self.current_page = 0
         self.page_data = None
         self.content_data = None
 
-        h2t.body_width = scr_max_x - h_pad * 2
+        h2t.body_width = self.scr_max_x - h_pad * 2
         self._flag_no_room = False
 
     def debugg(self, joku):
@@ -53,15 +50,6 @@ class yle_module:
         page_counter = 0
         y_counter = 1
         for i in range(len(json_data.entries)):
-            try:
-                content = json_data.entries[i]["content"][0]["value"]
-                content_data.append(h2t.handle(content))
-            except KeyError:
-                id_ = json_data.entries[i]["id"]
-                content = "No text-based content provided, see full article a"
-                "t " + id_
-                content_data.append(content)
-
             timestamp = json_data.entries[i]["published"]
             timestamp = datetime.strptime(timestamp, "%a, %d %b %Y %X %z")
             timestamp = datetime.strftime(timestamp, "%d.%m %X")
@@ -80,6 +68,17 @@ class yle_module:
             y_desc = y_counter
             rows_desc = math.ceil(len(desc)/max_x)
             y_counter += rows_desc
+
+            try:
+                content = json_data.entries[i]["content"][0]["value"]
+                content_parsed = h2t.handle(content)
+                content_ready = "### " + headline + "\n\n" + content_parsed
+                content_data.append(content_ready)
+            except KeyError:
+                id_ = json_data.entries[i]["id"]
+                content = "No text-based content provided, see full article a"
+                "t " + id_
+                content_data.append(content)
 
             if y_counter > max_y:
                 if i == 0:
@@ -133,11 +132,20 @@ class yle_module:
             self.current_page = len(self.page_data) - 1
         self.print_data()
 
-    def print_content_pad(self, news_i):
+    def print_content_pad(self, param_news_i):
+        news_i = None
+        try:
+            news_i = int(param_news_i) - 1
+            self.content_data[news_i]
+            if news_i < 0:
+                raise IndexError
+        except (ValueError, IndexError):
+            return False
+        max_y, max_x = self.win.getmaxyx()
         pad = self.pad
         content = self.content_data[news_i]
-        pad_length = math.ceil(len(content)/self.max_x)
-        pad.resize(pad_length+1000, self.max_x)
+        pad_length = math.ceil(len(content)/max_x)
+        pad.resize(pad_length+1000, max_x)
         str_ut.curses_print_markdown(pad, content)
 
         h_pad = self.h_pad
@@ -166,5 +174,8 @@ class yle_module:
                 pad.refresh(pad_position, 0, 0, h_pad, scr_max_y, scr_max_x)
             elif key == 'q':
                 break
+            elif key == ':':
+                pass
 
         pad.clear()
+        return True
