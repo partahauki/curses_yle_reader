@@ -10,7 +10,7 @@ Current keybindings (main screen):
 
 - n - next page of news
 - b - previous page
-- u- manual refresh (autorefresh set for every 30min)
+- u - manual refresh (autorefresh set for every 30min)
 - q - quit program
 - r - read full article (asks for index)
 

@@ -25,6 +25,7 @@ class yle_module:
         self.content_data = None
 
         h2t.body_width = self.scr_max_x - h_pad * 2
+        self.pad_length = 0
         self._flag_no_room = False
 
     def debugg(self, joku):
@@ -132,7 +133,33 @@ class yle_module:
             self.current_page = len(self.page_data) - 1
         self.print_data()
 
-    def print_content_pad(self, param_news_i):
+    def _write_to_pad(self, content):
+        pad = self.pad
+        pad.erase()
+
+        max_y, max_x = self.win.getmaxyx()
+        self.pad_length = self._pad_length(pad, content)
+        pad.resize(self.pad_length, max_x)
+        str_ut.curses_print_markdown(pad, content)
+
+    def _pad_length(self, pad, content):
+        max_y, max_x = pad.getmaxyx()
+        rows = str_ut.calculate_rows(pad, content)
+        length = max_y
+        if rows > max_y:
+            length = rows
+
+        return length
+
+    def _ensure_index_in_bounds(self, param_i, target):
+        i = param_i
+        if i < 0:
+            i = len(target) - 1
+        elif i >= len(target):
+            i = 0
+        return i
+
+    def display_content_pad(self, param_news_i):
         news_i = None
         try:
             news_i = int(param_news_i) - 1
@@ -141,14 +168,15 @@ class yle_module:
                 raise IndexError
         except (ValueError, IndexError):
             return False
+
         max_y, max_x = self.win.getmaxyx()
         pad = self.pad
-        content = self.content_data[news_i]
-        pad_length = math.ceil(len(content)/max_x)
-        pad.resize(pad_length+1000, max_x)
-        str_ut.curses_print_markdown(pad, content)
+        content_data = self.content_data
+        content = content_data[news_i]
+        self._write_to_pad(content)
 
         h_pad = self.h_pad
+        self.pad_length = self._pad_length(pad, content)
         scr_max_y = self.scr_max_y - 3
         scr_max_x = self.scr_max_x
         pad.refresh(0, 0, 0, h_pad, scr_max_y, scr_max_x)
@@ -162,9 +190,8 @@ class yle_module:
 
             if pad_position < 0:
                 pad_position = 0
-            elif pad_position > pad_length:
-                # pad_position = pad_length
-                pass
+            elif pad_position >= self.pad_length - scr_max_y:
+                pad_position = self.pad_length - scr_max_y
 
             if key == 'j':
                 pad_position += 1
@@ -172,10 +199,18 @@ class yle_module:
             elif key == 'k':
                 pad_position += -1
                 pad.refresh(pad_position, 0, 0, h_pad, scr_max_y, scr_max_x)
+            elif key == 'n':
+                news_i = self._ensure_index_in_bounds(news_i + 1, content_data)
+                self._write_to_pad(content_data[news_i])
+                pad.refresh(0, 0, 0, h_pad, scr_max_y, scr_max_x)
+                pad_position = 0
+            elif key == 'b':
+                news_i = self._ensure_index_in_bounds(news_i - 1, content_data)
+                self._write_to_pad(content_data[news_i])
+                pad.refresh(0, 0, 0, h_pad, scr_max_y, scr_max_x)
+                pad_position = 0
             elif key == 'q':
                 break
-            elif key == ':':
-                pass
 
         pad.clear()
         return True
