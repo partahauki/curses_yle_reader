@@ -73,12 +73,17 @@ class yle_module:
             try:
                 content = json_data.entries[i]["content"][0]["value"]
                 content_parsed = h2t.handle(content)
-                content_ready = "### " + headline + "\n\n" + content_parsed
+                content_ready = "### " + headline + "\n\n"
+                if content_parsed[:2] == "\n\n":
+                    content_ready += content_parsed[2:]
+                else:
+                    content_ready += content_parsed
+
                 content_data.append(content_ready)
             except KeyError:
-                id_ = json_data.entries[i]["id"]
-                content = "No text-based content provided, see full article a"
-                "t " + id_
+                id_ = json_data.entries[i]["id"][8:]
+                content = "No text-based content provided, see the article "\
+                    + "at " + id_
                 content_data.append(content)
 
             if y_counter > max_y:
@@ -138,18 +143,14 @@ class yle_module:
         pad.erase()
 
         max_y, max_x = self.win.getmaxyx()
-        self.pad_length = self._pad_length(pad, content)
+        self.pad_length = self._pad_length(content)
         pad.resize(self.pad_length, max_x)
         str_ut.curses_print_markdown(pad, content)
 
-    def _pad_length(self, pad, content):
-        max_y, max_x = pad.getmaxyx()
-        rows = str_ut.calculate_rows(pad, content)
-        length = max_y
-        if rows > max_y:
-            length = rows
-
-        return length
+    def _pad_length(self, content):
+        rows = str_ut.calculate_rows(content, h2t.body_width)
+        length = self.scr_max_y if rows < self.scr_max_y else rows
+        return length + 2
 
     def _ensure_index_in_bounds(self, param_i, target):
         i = param_i
@@ -176,7 +177,7 @@ class yle_module:
         self._write_to_pad(content)
 
         h_pad = self.h_pad
-        self.pad_length = self._pad_length(pad, content)
+        self.pad_length = self._pad_length(content)
         scr_max_y = self.scr_max_y - 3
         scr_max_x = self.scr_max_x
         pad.refresh(0, 0, 0, h_pad, scr_max_y, scr_max_x)

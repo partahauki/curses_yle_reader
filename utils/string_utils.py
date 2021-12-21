@@ -60,19 +60,18 @@ def curses_print_markdown(win, text):
 
         i += 1
 
-    win.addstr(text[continue_from:i-1])
+    win.addstr(text[continue_from:i])
 
 
-def calculate_rows(win, text):
-    max_y, max_x = win.getmaxyx()
+def calculate_rows(text, width):
     i = 0
     x_counter = 0
-    row_counter = 0
+    row_counter = 1
     while i < len(text):
         if text[i] == '\n':
             row_counter += 1
             x_counter = 0
-        elif x_counter == max_x - 1:
+        elif x_counter == width - 1:
             row_counter += 1
             x_counter = 0
 

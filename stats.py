@@ -7,16 +7,16 @@ from modules import toolbar_module
 
 # todo:
 # height checks for errors
-# scroll limit bottom pad
 
-# toolbar to own module
-# crypto to own module
-# switch pad with n/b
+# added
+# fixed a bug where article pad didn't fill the whole screen
+# fixed a bug where the last character of an article wasn't being printed
+
 
 H_PAD = 1
 LOAD_CRYPTO = True
 LOAD_YLE = True
-CRYPTOS = ["BTC", "ETH", "AAVE", "MATIC"]
+CRYPTOS = ["BTC", "ETH", "AAVE", "MATIC", "LINK", "DOGE", "MANA"]
 
 
 def debugg(joku):
@@ -61,11 +61,15 @@ def main(stdscr):
     toolbar_m = toolbar_module.toolbar_module(toolbar_win)
     win["toolbar"] = toolbar_m
 
+    win["toolbar"].win.addstr(0, 0, "Initalizing...")
+    win["toolbar"].refresh()
+
     if LOAD_CRYPTO is True:
         crypto_y = len(CRYPTOS) + 1
         crypto_x = max_x - (H_PAD * 2)
         crypto_win = cs.newwin(crypto_y, crypto_x, current_y, H_PAD)
         crypto_m = crypto_module.crypto_module(crypto_win, CRYPTOS)
+        crypto_y = crypto_m.adjust_win_height()
 
         current_y += crypto_y
         win["crypto"] = crypto_m
@@ -79,9 +83,6 @@ def main(stdscr):
 
         current_y += yle_y
         win["yle"] = yle_m
-
-    win["toolbar"].win.addstr(0, 0, "Initalizing...")
-    win["toolbar"].refresh()
 
     while True:
         if LOAD_CRYPTO is True:
