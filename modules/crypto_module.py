@@ -21,6 +21,11 @@ class crypto_module:
     def touchwin(self):
         self.win.touchwin()
 
+    def resize_window(self, new_y, new_x):
+        self.win.resize(new_y, new_x)
+        self.adjust_win_height()
+        self.print_crypto()
+
     def adjust_win_height(self):
         max_y, max_x = self.win.getmaxyx()
         self.fetch_crypto()

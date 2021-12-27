@@ -11,6 +11,9 @@ class toolbar_module:
     def touchwin(self):
         self.win.touchwin()
 
+    def resize_window(self, new_x):
+        self.win.resize(1, new_x)
+
     def take_input(self, prompt):
         win = self.win
         max_y, max_x = win.getmaxyx()

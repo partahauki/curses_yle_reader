@@ -39,6 +39,11 @@ class yle_module:
     def touchwin(self):
         self.win.touchwin()
 
+    def resize_window(self, new_y, new_x):
+        self.win.resize(new_y, new_x)
+        self.parse_json_data()
+        self.print_data()
+
     def fetch_json(self):
         url = "https://feeds.yle.fi/uutiset/v1/majorHeadlines/YLE_UUTISET.rss"
         self.json_data = fp.parse(url)

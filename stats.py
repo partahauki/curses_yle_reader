@@ -6,17 +6,15 @@ from modules import crypto_module
 from modules import toolbar_module
 
 # todo:
-# height checks for errors
-
-# added
-# fixed a bug where article pad didn't fill the whole screen
-# fixed a bug where the last character of an article wasn't being printed
+# NO ROOM messages working
+# refit screen errors
 
 
 H_PAD = 1
 LOAD_CRYPTO = True
 LOAD_YLE = True
 CRYPTOS = ["BTC", "ETH", "AAVE", "MATIC", "LINK", "DOGE", "MANA"]
+# CRYPTOS = ["ETH"]
 
 
 def debugg(joku):
@@ -42,11 +40,13 @@ def initialize_screen(scr):
     cs.init_pair(2, cs.COLOR_GREEN, -1)
 
     max_y, max_x = scr.getmaxyx()
+    min_y = len(CRYPTOS) + 4
     if max_x < 20:
         msg = "Terminal is too narrow, increase it's width to at least 20"
         terminate_program(msg)
-    if max_y < 6:
-        msg = "Terminal is too short, increase it's height to at least 6"
+    if max_y < min_y:
+        msg = "Terminal is too short, increase it's height to at least "\
+            + str(min_y)
         terminate_program(msg)
     return max_y, max_x
 
@@ -55,7 +55,7 @@ def main(stdscr):
     max_y, max_x = initialize_screen(stdscr)
 
     current_y = 0
-    win = {}
+    win = {"stdscr": stdscr}
 
     toolbar_win = cs.newwin(1, max_x, max_y - 1, H_PAD)
     toolbar_m = toolbar_module.toolbar_module(toolbar_win)
@@ -101,27 +101,35 @@ def main(stdscr):
         win["toolbar"].win.erase()
         timer_start = time.perf_counter()
         timer_end = timer_start + 1800
-        cs.halfdelay(100)
+        cs.halfdelay(1)
         while time.perf_counter() < timer_end:
             try:
-                key = win["toolbar"].win.getkey()
+                key = win["toolbar"].win.getch()
             except Exception:
-                key = None
+                key = False
 
-            if key == 'u':
+            if key == ord('u'):
                 break
-            elif key == 'n':
+            elif key == ord('n'):
                 win["yle"].change_page(1)
                 win["yle"].refresh()
-            elif key == 'b':
+            elif key == ord('b'):
                 win["yle"].change_page(-1)
                 win["yle"].refresh()
-            elif key == 't':
+            elif key == ord('t'):
                 win["yle"].print_content_pad(0)
                 touch_and_refresh(win)
-            elif key == 'q':
+            elif key == ord('q'):
                 terminate_program()
-            elif key == 'r':
+            elif key == cs.KEY_RESIZE:
+                new_y, new_x = stdscr.getmaxyx()
+                win["toolbar"].resize_window(new_x)
+                win["crypto"].resize_window(new_y, new_x)
+                crypto_y, crypto_x = win["crypto"].win.getmaxyx()
+                win["yle"].win.mvwin(crypto_y, 0)
+                win["yle"].resize_window(new_y - crypto_y - 3, new_x)
+                touch_and_refresh(win)
+            elif key == ord('r'):
                 prompt = "Read article (index): "
                 input_str = win["toolbar"].take_input(prompt)
 
