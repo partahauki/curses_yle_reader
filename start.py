@@ -6,15 +6,21 @@ from modules import crypto_module
 from modules import toolbar_module
 
 # todo:
-# NO ROOM messages working
-# refit screen errors
+# resize article pad
+# arguments
+# some keys must be disabled during NO ROOM
 
 
 H_PAD = 1
+
 LOAD_CRYPTO = True
-LOAD_YLE = True
 CRYPTOS = ["BTC", "ETH", "AAVE", "MATIC", "LINK", "DOGE", "MANA"]
 # CRYPTOS = ["ETH"]
+
+MIN_Y = 4
+if LOAD_CRYPTO is True:
+    MIN_Y += len(CRYPTOS)
+MIN_X = 20
 
 
 def debugg(joku):
@@ -37,25 +43,62 @@ def initialize_screen(scr):
     cs.curs_set(0)
     cs.use_default_colors()
     cs.init_pair(1, cs.COLOR_CYAN, -1)
-    cs.init_pair(2, cs.COLOR_GREEN, -1)
+    cs.init_pair(2, cs.COLOR_RED, -1)
+
+    bool_ = is_screensize_sufficient(scr)
+    if bool_ is False:
+        msg = "Terminal window is too small, minimum height is " + str(MIN_Y) \
+                + " and width " + str(MIN_X)
+        terminate_program(msg)
 
     max_y, max_x = scr.getmaxyx()
-    min_y = len(CRYPTOS) + 4
-    if max_x < 20:
-        msg = "Terminal is too narrow, increase it's width to at least 20"
-        terminate_program(msg)
-    if max_y < min_y:
-        msg = "Terminal is too short, increase it's height to at least "\
-            + str(min_y)
-        terminate_program(msg)
     return max_y, max_x
+
+
+def is_screensize_sufficient(stdscr):
+    is_sufficient = True
+    max_y, max_x = stdscr.getmaxyx()
+
+    if max_x < MIN_X:
+        is_sufficient = False
+    if max_y < MIN_Y:
+        is_sufficient = False
+    return is_sufficient
+
+
+def resize_windows(stdscr, win):
+    scr_is_good_size = is_screensize_sufficient(stdscr)
+    if scr_is_good_size is False:
+        for w in win:
+            win[w].win.clear()
+        touch_and_refresh(win)
+        return False
+
+    win["toolbar"].win.addstr(0, 0, "Resizing window...")
+    win["toolbar"].refresh()
+
+    current_y = 0
+    new_y, new_x = stdscr.getmaxyx()
+    win["toolbar"].resize_window(new_x)
+    if LOAD_CRYPTO is True:
+        win["crypto"].resize_window(new_y, new_x)
+        crypto_y, crypto_x = win["crypto"].win.getmaxyx()
+        current_y += crypto_y
+
+    win["yle"].resize_window(new_y - current_y - 3, new_x - (H_PAD * 2))
+    win["yle"].win.mvwin(current_y, H_PAD)
+
+    win["toolbar"].win.clear()
+    win["toolbar"].refresh()
+    touch_and_refresh(win)
+    return True
 
 
 def main(stdscr):
     max_y, max_x = initialize_screen(stdscr)
 
     current_y = 0
-    win = {"stdscr": stdscr}
+    win = {}
 
     toolbar_win = cs.newwin(1, max_x, max_y - 1, H_PAD)
     toolbar_m = toolbar_module.toolbar_module(toolbar_win)
@@ -74,29 +117,26 @@ def main(stdscr):
         current_y += crypto_y
         win["crypto"] = crypto_m
 
-    if LOAD_YLE is True:
-        yle_y = max_y - current_y - 2
-        yle_x = max_x - (H_PAD * 2)
-        yle_win = cs.newwin(yle_y, yle_x, current_y, H_PAD)
-        yle_m = yle_module.yle_module(stdscr, yle_win, H_PAD,
-                                      win["toolbar"].win)
+    yle_y = max_y - current_y - 2
+    yle_x = max_x - (H_PAD * 2)
+    yle_win = cs.newwin(yle_y, yle_x, current_y, H_PAD)
+    yle_m = yle_module.yle_module(stdscr, yle_win, H_PAD,
+                                  win["toolbar"].win)
 
-        current_y += yle_y
-        win["yle"] = yle_m
+    current_y += yle_y
+    win["yle"] = yle_m
 
     while True:
         if LOAD_CRYPTO is True:
             win["crypto"].fetch_crypto()
-        if LOAD_YLE is True:
-            win["yle"].fetch_json()
-            win["yle"].parse_json_data()
+        win["yle"].fetch_json()
+        win["yle"].parse_json_data()
 
         if LOAD_CRYPTO is True:
             win["crypto"].print_crypto()
             win["crypto"].refresh()
-        if LOAD_YLE is True:
-            win["yle"].print_data()
-            win["yle"].refresh()
+        win["yle"].print_data()
+        win["yle"].refresh()
 
         win["toolbar"].win.erase()
         timer_start = time.perf_counter()
@@ -122,13 +162,7 @@ def main(stdscr):
             elif key == ord('q'):
                 terminate_program()
             elif key == cs.KEY_RESIZE:
-                new_y, new_x = stdscr.getmaxyx()
-                win["toolbar"].resize_window(new_x)
-                win["crypto"].resize_window(new_y, new_x)
-                crypto_y, crypto_x = win["crypto"].win.getmaxyx()
-                win["yle"].win.mvwin(crypto_y, 0)
-                win["yle"].resize_window(new_y - crypto_y - 3, new_x)
-                touch_and_refresh(win)
+                resize_windows(stdscr, win)
             elif key == ord('r'):
                 prompt = "Read article (index): "
                 input_str = win["toolbar"].take_input(prompt)
