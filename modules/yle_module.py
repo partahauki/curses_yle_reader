@@ -39,7 +39,11 @@ class yle_module:
     def touchwin(self):
         self.win.touchwin()
 
-    def resize_window(self, new_y, new_x):
+    def resize_window(self, new_y, new_x, new_scr_max_y, new_scr_max_x):
+        self.scr_max_y = new_scr_max_y
+        self.scr_max_x = new_scr_max_x
+        h2t.body_width = self.scr_max_x - self.h_pad * 2
+
         self.win.resize(new_y, new_x)
         self.parse_json_data()
         self.print_data()
@@ -151,6 +155,7 @@ class yle_module:
         self.pad_length = self._pad_length(content)
         pad.resize(self.pad_length, max_x)
         str_ut.curses_print_markdown(pad, content)
+        pad.touchwin()
 
     def _pad_length(self, content):
         rows = str_ut.calculate_rows(content, h2t.body_width)
@@ -173,7 +178,7 @@ class yle_module:
             if news_i < 0:
                 raise IndexError
         except (ValueError, IndexError):
-            return False
+            return 1
 
         max_y, max_x = self.win.getmaxyx()
         pad = self.pad
@@ -190,7 +195,7 @@ class yle_module:
         pad_position = 0
         while True:
             try:
-                key = pad.getkey()
+                key = pad.getch()
             except Exception:
                 key = None
 
@@ -199,24 +204,25 @@ class yle_module:
             elif pad_position >= self.pad_length - scr_max_y:
                 pad_position = self.pad_length - scr_max_y
 
-            if key == 'j':
+            if key == ord('j'):
                 pad_position += 1
                 pad.refresh(pad_position, 0, 0, h_pad, scr_max_y, scr_max_x)
-            elif key == 'k':
+            elif key == ord('k'):
                 pad_position += -1
                 pad.refresh(pad_position, 0, 0, h_pad, scr_max_y, scr_max_x)
-            elif key == 'n':
+            elif key == ord('n'):
                 news_i = self._ensure_index_in_bounds(news_i + 1, content_data)
                 self._write_to_pad(content_data[news_i])
                 pad.refresh(0, 0, 0, h_pad, scr_max_y, scr_max_x)
                 pad_position = 0
-            elif key == 'b':
+            elif key == ord('b'):
                 news_i = self._ensure_index_in_bounds(news_i - 1, content_data)
                 self._write_to_pad(content_data[news_i])
                 pad.refresh(0, 0, 0, h_pad, scr_max_y, scr_max_x)
                 pad_position = 0
-            elif key == 'q':
-                break
-
-        pad.clear()
-        return True
+            elif key == cs.KEY_RESIZE:
+                pad.clear()
+                return 2
+            elif key == ord('q'):
+                pad.clear()
+                return 0

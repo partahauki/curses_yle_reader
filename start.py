@@ -5,18 +5,16 @@ from modules import yle_module
 from modules import crypto_module
 from modules import toolbar_module
 
-# todo:
-# resize article pad
-# arguments
-# some keys must be disabled during NO ROOM
 
+# Crypto data is fetched from coinbase, so symbol must be in a format that it
+# understands
+LOAD_CRYPTO = False
+CRYPTOS = ["BTC", "ETH", "AAVE", "MATIC"]
+
+# How often to refresh both news and cryptos in seconds
+REFRESH_RATE = 1800
 
 H_PAD = 1
-
-LOAD_CRYPTO = True
-CRYPTOS = ["BTC", "ETH", "AAVE", "MATIC", "LINK", "DOGE", "MANA"]
-# CRYPTOS = ["ETH"]
-
 MIN_Y = 4
 if LOAD_CRYPTO is True:
     MIN_Y += len(CRYPTOS)
@@ -43,7 +41,7 @@ def initialize_screen(scr):
     cs.curs_set(0)
     cs.use_default_colors()
     cs.init_pair(1, cs.COLOR_CYAN, -1)
-    cs.init_pair(2, cs.COLOR_RED, -1)
+    cs.init_pair(2, cs.COLOR_MAGENTA, -1)
 
     bool_ = is_screensize_sufficient(scr)
     if bool_ is False:
@@ -74,18 +72,20 @@ def resize_windows(stdscr, win):
         touch_and_refresh(win)
         return False
 
-    win["toolbar"].win.addstr(0, 0, "Resizing window...")
+    win["toolbar"].win.addstr(1, 0, "Resizing window...")
     win["toolbar"].refresh()
 
     current_y = 0
     new_y, new_x = stdscr.getmaxyx()
-    win["toolbar"].resize_window(new_x)
+    win["toolbar"].resize_window(new_x, new_y, H_PAD)
     if LOAD_CRYPTO is True:
         win["crypto"].resize_window(new_y, new_x)
         crypto_y, crypto_x = win["crypto"].win.getmaxyx()
         current_y += crypto_y
 
-    win["yle"].resize_window(new_y - current_y - 3, new_x - (H_PAD * 2))
+    new_yle_max_y = new_y - current_y - 2
+    new_yle_max_x = new_x - (H_PAD * 2)
+    win["yle"].resize_window(new_yle_max_y, new_yle_max_x, new_y, new_x)
     win["yle"].win.mvwin(current_y, H_PAD)
 
     win["toolbar"].win.clear()
@@ -100,11 +100,11 @@ def main(stdscr):
     current_y = 0
     win = {}
 
-    toolbar_win = cs.newwin(1, max_x, max_y - 1, H_PAD)
-    toolbar_m = toolbar_module.toolbar_module(toolbar_win)
+    toolbar_win = cs.newwin(2, max_x, max_y - 2, H_PAD)
+    toolbar_m = toolbar_module.toolbar_module(toolbar_win, max_y, max_x)
     win["toolbar"] = toolbar_m
 
-    win["toolbar"].win.addstr(0, 0, "Initalizing...")
+    win["toolbar"].win.addstr(1, 0, "Initalizing...")
     win["toolbar"].refresh()
 
     if LOAD_CRYPTO is True:
@@ -140,13 +140,18 @@ def main(stdscr):
 
         win["toolbar"].win.erase()
         timer_start = time.perf_counter()
-        timer_end = timer_start + 1800
+        timer_end = timer_start + REFRESH_RATE
         cs.halfdelay(1)
+        flag_need_resize = False
         while time.perf_counter() < timer_end:
-            try:
-                key = win["toolbar"].win.getch()
-            except Exception:
-                key = False
+            if flag_need_resize is False:
+                try:
+                    key = win["toolbar"].win.getch()
+                except Exception:
+                    key = False
+            else:
+                key = cs.KEY_RESIZE
+                flag_need_resize = False
 
             if key == ord('u'):
                 break
@@ -167,16 +172,18 @@ def main(stdscr):
                 prompt = "Read article (index): "
                 input_str = win["toolbar"].take_input(prompt)
 
-                pad_success = win["yle"].display_content_pad(input_str)
-                if pad_success is True:
+                pad_exit_code = win["yle"].display_content_pad(input_str)
+                if pad_exit_code == 0:
                     touch_and_refresh(win)
-                else:
+                elif pad_exit_code == 1:
                     msg = "Invalid article index!"
-                    win["toolbar"].win.addstr(msg)
+                    win["toolbar"].win.addstr(1, 0, msg)
                     win["toolbar"].refresh()
+                elif pad_exit_code == 2:
+                    flag_need_resize = True
 
         win["toolbar"].win.erase()
-        win["toolbar"].win.addstr(0, 0, "Refreshing...")
+        win["toolbar"].win.addstr(1, 0, "Refreshing...")
         win["toolbar"].refresh()
 
 

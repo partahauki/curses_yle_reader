@@ -2,8 +2,10 @@ import curses as cs
 
 
 class toolbar_module:
-    def __init__(self, win):
+    def __init__(self, win, scr_max_y, scr_max_x):
         self.win = win
+        self.scr_max_y = scr_max_y
+        self.scr_max_x = scr_max_x
 
     def refresh(self):
         self.win.refresh()
@@ -11,8 +13,9 @@ class toolbar_module:
     def touchwin(self):
         self.win.touchwin()
 
-    def resize_window(self, new_x):
-        self.win.resize(1, new_x)
+    def resize_window(self, new_x, new_y, h_pad):
+        self.win.resize(2, new_x-(h_pad*2))
+        self.win.mvwin(new_y - 2, h_pad)
 
     def take_input(self, prompt):
         win = self.win
@@ -23,7 +26,7 @@ class toolbar_module:
         cs.curs_set(True)
         win.erase()
 
-        win.addstr(0, 0, prompt)
+        win.addstr(1, 0, prompt)
         input_str = win.getstr(input_max_x)
 
         win.clear()
